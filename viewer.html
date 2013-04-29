@@ -6,152 +6,7 @@
 
     <script src="phylo.parse.js"></script>
     <script src="phylo.vis.js"></script>
-    <script>
-      function deleteOldSVGElement() {
-        var oldElement = document.getElementById("SVG");
-        if (oldElement != null)
-          oldElement.parentNode.removeChild(oldElement);
-      }
-
-      function displayFrameWithText(string) {
-          deleteOldSVGElement();
-
-          var NS="http://www.w3.org/2000/svg";
-          var svg = document.createElementNS(NS, "svg");
-          svg.setAttribute("width", Math.max(window.innerWidth-250-5, 200));
-          svg.setAttribute("height", Math.max(window.innerHeight-5, 200));
-          svg.setAttribute("id", "SVG");
-
-          var rect = document.createElementNS(NS, "rect");
-          rect.setAttribute("x", 30);
-          rect.setAttribute("y", 30);
-          rect.setAttribute("width", Math.max(window.innerWidth-250-60, 200));
-          rect.setAttribute("height", Math.max(window.innerHeight-60, 200));
-          rect.setAttribute("rx", 15);
-          rect.setAttribute("ry", 15);
-          rect.setAttribute("fill", "none");
-          rect.setAttribute("stroke", "gray");
-          rect.setAttribute("stroke-width", 5);
-          rect.setAttribute("stroke-dasharray", "10,10");
-          svg.appendChild(rect);
-
-          var text = document.createElementNS(NS, "text");
-          var cx = Math.round((window.innerWidth-250)/2);
-          var cy = Math.round(window.innerHeight/2);
-          text.setAttribute("x", cx);
-          text.setAttribute("y", cy);
-          text.setAttribute("text-anchor", "middle");
-          text.setAttribute("fill", "gray");
-          text.setAttribute("font-family", "sans-serif");
-          text.setAttribute("font-size", "40pt");
-          text.textContent = string;
-          svg.appendChild(text);
-
-          document.getElementById("output").appendChild(svg);
-      }
-
-      function updateControls() {
-        // Update form elements:
-        if (!document.getElementById("sort").checked) {
-          document.getElementById("sortOrder").disabled = true;
-        } else {
-          document.getElementById("sortOrder").disabled = false;
-        }
-
-       if (!document.getElementById("colour").checked) {
-          document.getElementById("colourTrait").disabled = true;
-       } else {
-          document.getElementById("colourTrait").disabled = false;
-       }
-      }
-
-      function updateTraitSelectors(traitList) {
-        // Update form elements containing trait selectors
-
-        var el = document.getElementById("colourTrait");
-
-        // Save currently selected element index:
-        var idx = el.selectedIndex;
-
-        // Clear old traits:
-        el.innerHTML = "";
-
-        for (var i=0; i<traitList.length; i++) {
-          var selector = document.createElement("option");
-          selector.setAttribute("value", traitList[i]);
-          selector.textContent = traitList[i];
-          el.appendChild(selector);
-        }
-
-        // Restore selected index:
-        if (idx>=0)
-          el.selectedIndex = idx;				  
-      }
-
-
-      /*******
-      * MAIN *
-      ********/
-
-      function main() {
-
-        updateControls();
-    
-        var newickString = document.getElementById("newickInput").value;
-
-        if (newickString.replace(/\s+/g,"").length==0) {
-          displayFrameWithText("no tree loaded");
-          return;
-        }
-
-        newickString = newickString.replace(/&amp;/g,"&");
-
-        try {
-          var tree = Object.create(TreeFromNewick).init(newickString);
-        } catch (e) {
-          displayFrameWithText("error parsing Newick string");
-          return;
-        }
-
-        console.log("Successfully parsed tree with "
-                + tree.getNodeList().length + " nodes and "
-                + tree.getLeafList().length + " leaves.");
-
-        // Sort tree nodes
-        if (document.getElementById("sort").checked) {
-          var sortOrderElement = document.getElementById("sortOrder");
-          if (sortOrderElement.options[sortOrderElement.selectedIndex].value=="ascending")
-            tree.sortNodes(false);
-          else
-            tree.sortNodes(true);
-        }
-
-        // Update trait selectors:
-        updateTraitSelectors(tree.getTraitList());
-
-	// Determine whether colouring required:
-	var colourTraitElement = document.getElementById("colourTrait");
-	var colourTrait = undefined;
-	if (document.getElementById("colour").checked) {
-	  if (colourTraitElement.selectedIndex>=0) {
-	    colourTrait = colourTraitElement.options[colourTraitElement.selectedIndex].value;
-	  }
-	}
-	
-
-        var layout = Object.create(Layout).init(tree).standard();
-      
-        var width = Math.max(window.innerWidth-250-5, 200);
-        var height = Math.max(window.innerHeight-5, 200);
-
-        var svg = layout.display(width, height, colourTrait);
-
-        deleteOldSVGElement();
-        svg.setAttribute("id", "SVG");
-        document.getElementById("output").appendChild(svg);
-
-      }
-    </script>
+    <script src="viewer.js"></script>
 
     <style>
       body {
@@ -176,8 +31,11 @@
       padding-bottom: 10px;
       }
 
-      textarea {
+      #pasteInput {
 	width: 220px;
+      }
+      #fileInput {
+        width: 320px;
       }
 
       #output {
@@ -185,23 +43,73 @@
       top: 0px;
       left: 250px;
       }
+
+      #source {
+      padding-bottom: 10px;
+      padding-right: 10px;
+      margin-right: 10px;
+      border-bottom: solid gray 1px;
+      font-size: small;
+      }
+
+      #or {
+      padding: 5px;
+      text-align: center;
+      }
+
+      #treeSelect {
+      border-top: solid gray 1px;
+      padding-top: 10px;
+      text-align: center;
+      }
     </style>
 
   </head>
-  <body onload="main()">
+  <body onload="update()">
     <div id="controls">
       <ul>
-      <li><textarea id="newickInput" onchange="main()" placeholder="newick string..."></textarea></li>
-      <li><input type="checkbox" checked="checked" onchange="main()" id="sort"/>sort nodes:
-	<select name="sortOrder" id="sortOrder" onchange="main()">
+      <li>
+	<div id="source">
+	  Paste NEXUS/Newick tree string here:
+	  <textarea id="pasteInput" placeholder="newick string..."
+		    onchange="pasteInputHandler()"></textarea>
+	  <div id="or">
+	    - OR -
+	  </div>
+	  Select NEXUS/Newick tree file here:
+	  <input id="fileInput" type="file" size="15" style="width: 220px"
+		 onchange="fileInputHandler()"/>
+	</div>
+      </li>
+      <li><input type="checkbox" checked="checked" id="sort"
+		 onchange="document.getElementById('sortOrder').disabled=!this.checked;
+			   update();"/>sort nodes:
+	<select name="sortOrder" id="sortOrder" onchange="update()">
 	  <option value="decending">decending</option>
 	  <option value="ascending">ascending</option>
-	</select></li>
-      <li><input type="checkbox" onchange="main()" id="colour"/>colour
-      by trait:
-	<select name="colourTrait" id="colourTrait" onchange="main()"
-		disabled="disabled">
 	</select>
+      </li>
+      <li><input type="checkbox" id="colour"
+		 onchange="document.getElementById('colourTrait').disabled=!this.checked;
+			   update();"/>colour by trait:
+	<select name="colourTrait" id="colourTrait" onchange="update()"
+		disabled="disabled">
+	</select></li>
+      <li><input type="checkbox" id="tipText" checked="checked"
+		 onchange="document.getElementById('tipTextTrait').disabled=!this.checked;
+			   update();"/>tip text:
+	<select name="tipTextTrait" id="tipTextTrait" onchange="update()">
+	  <option value="label">label</option>
+      </select></li>
+      <li>
+	<div id="treeSelect">
+	  <div id="treeCounter"></div>
+	  <button id="prevTree" type="button" disabled="true"
+		  onclick="currentTreeIdx-=1; update()">Prev</button>
+	  <button id="nextTree" type="button" disabled="true"
+		  onclick="currentTreeIdx+=1; update()">Next</button>
+	</div>
+      </li>
       </ul>
     </div>
 
