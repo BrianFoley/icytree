@@ -64,10 +64,16 @@
 	    tree.sortNodes(true);
 	    var layout = Object.create(Layout).init(tree).standard();
 
-	    var outEl = document.getElementById("phylogeny")
-	    layout.width = outEl.clientWidth
-	    layout.height = outEl.clientHeight
-	    outEl.appendChild(layout.display());
+	    var outEl = document.getElementById("phylogeny");
+	    layout.width = outEl.clientWidth;
+	    layout.height = outEl.clientHeight;
+	    layout.fontSize = 10;
+	    layout.lineWidth = 1;
+	    var svg = layout.display();
+	    svg.setAttribute("id", "SVG");
+	    svg.style.shapeRendering = "crispEdges";
+
+	    outEl.appendChild(svg);
 	  </script>
 	  
 	  <p><a href="viewer.html">IcyTree</a>, a general-purpose tree viewer, more extensively
