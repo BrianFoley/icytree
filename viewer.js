@@ -334,6 +334,9 @@ function update() {
     layout.markInternalNodes = markInternalNodes;
     layout.axis = showAxis;
 
+    // Use existing zoom control instance:
+    layout.zoomControl = zoomControl;
+
     // Display!
     outputEl.innerHTML = "";
     var svg = layout.display();

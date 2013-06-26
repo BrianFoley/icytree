@@ -41,7 +41,7 @@ var Layout = Object.create({}, {
     lineWidth: {value: 2, writable: true, configurable: true, enumerable: true},
     fontSize: {value: 15, writable: true, configurable: true, enumerable: true},
     
-    includeZoomControl: {value: true, writable: true, configurable: true, enumerable: true},
+    zoomControl: {value: undefined, writable: true, configurable: true, enumerable: true},
 
     init: {value: function(tree) {
 	this.tree = tree;
@@ -313,8 +313,10 @@ var Layout = Object.create({}, {
 
 	// Attach event handlers for pan and zoom:
 
-	if (this.includeZoomControl)
-	    ZoomControl.init(svg, this.lineWidth, this.fontSize);
+	if (this.zoomControl === undefined)
+	    this.zoomControl = Object.create(ZoomControl);
+
+	this.zoomControl.init(svg, this.lineWidth, this.fontSize);
 
 	return svg;
     }}
