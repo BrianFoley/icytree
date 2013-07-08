@@ -12,17 +12,22 @@ var zoomControl = undefined;
 function fileInputHandler() {
     treeFile = document.getElementById("fileInput").files[0];
 
-    // Enable reload button:
-    document.getElementById("fileReload").disabled = false;
-
     loadFile();
 }
 
-function pasteInputHandler() {
-    treeData = document.getElementById("pasteInput").value;
+function directEntryDisplay(flag) {
 
-    // Disable reload button:
-    document.getElementById("fileReload").disabled = true;
+    var el = document.getElementById("directEntry");
+
+    if (flag) {
+	el.style.display = "block";
+    } else {
+	el.style.display = "none";
+    }
+}
+
+function directEntryHandler() {
+    treeData = document.getElementById("directEntryInput").value;
 
     reloadTreeData();
 }
@@ -31,9 +36,6 @@ function dropInputHandler(event) {
     event.preventDefault();
 
     treeFile = event.dataTransfer.files[0];
-
-    // Enable reload
-    document.getElementById("fileReload").disabled = false;
 
     loadFile();
 }
@@ -48,9 +50,6 @@ function loadFile() {
 	treeData = evt.target.result;
 	reloadTreeData();
     }
-
-    // Enable reload button:
-    document.getElementById("fileReload").disabled = false;
 
 }
 
@@ -253,6 +252,9 @@ function reloadTreeData() {
 
 // Converts SVG in output element to data URI for saving
 function exportSVG() {
+//    if (currentTreeIndex>=trees.length)
+//	return false;
+
     var outputEl = document.getElementById("output");
     var dataURI = "data:image/svg+xml;base64," + window.btoa(outputEl.innerHTML);
     window.open(dataURI);
@@ -266,7 +268,6 @@ function update() {
 
     if (trees.length === 0) {
 	displayFrameWithText("no tree loaded");
-	document.getElementById("exportSVG").disabled = true;
 	return;
     } else {
 	prepareOutputForTree();
@@ -349,9 +350,6 @@ function update() {
     svg.setAttribute("id", "SVG");
     svg.style.shapeRendering = "crispEdges";
     outputEl.appendChild(svg);
-
-    // Enable export button:
-    document.getElementById("exportSVG").disabled = false;
 }
 
 // Page initialisation code:
