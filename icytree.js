@@ -9,20 +9,6 @@ var controlsHidden = false;
 var outputEl = undefined;
 var zoomControl = undefined;
 
-function toggleControls() {
-    controlsHidden = !controlsHidden;
-
-    if (controlsHidden) {
-	document.getElementById("controls").style.display = "none";
-	document.getElementById("controlRestorer").style.display = "block";
-    } else {
-	document.getElementById("controls").style.display = "block";
-	document.getElementById("controlRestorer").style.display = "none";
-    }
-
-    update();
-}
-
 function fileInputHandler() {
     treeFile = document.getElementById("fileInput").files[0];
 
@@ -71,22 +57,20 @@ function loadFile() {
 // Display space-filling frame with big text
 function displayFrameWithText(string, isError) {
 
-    var controlsOffset;
-    if (!controlsHidden)
-	controlsOffset = 270;
-    else
-	controlsOffset = 0;
+    var margin = 20;
+    var menuHeight = 10;
 
     var output = document.getElementById("output");
     output.innerHTML = string;
-    output.style.margin = "20px";
+    output.style.margin = margin + "px";
     output.style.border = "dashed gray 5px";
-    output.style.borderRadius = "10px";
+    output.style.borderRadius = "30px";
 
-    output.style.left = controlsOffset + "px";
-    output.style.width = Math.max(window.innerWidth-controlsOffset-10-40, 200) + "px";
+    output.style.left = "0px";
+    output.style.top = menuHeight + "px";
+    output.style.width = Math.max(window.innerWidth-10-2*margin, 200) + "px";
     output.style.height = "100px";
-    var pad = Math.max(Math.floor((window.innerHeight-10-40-100)/2), 0) + "px";
+    var pad = Math.max(Math.floor((window.innerHeight-menuHeight-10-2*margin-100)/2), 0) + "px";
     output.style.paddingTop = pad;
     output.style.paddingBottom = pad;
 
@@ -106,6 +90,8 @@ function prepareOutputForTree(string) {
     output.style.margin = "0px";
     output.style.border = "none";
 
+    output.style.left = "0px"
+    output.style.top = "0px"
     output.style.width = "auto";
     output.style.height = "auto";
     output.style.padding = "0px";
@@ -115,22 +101,37 @@ function prepareOutputForTree(string) {
 
     output.style.color = "inherit";
 
-    if (!controlsHidden)
-	output.style.left = "270px";
-    else
-	output.style.left = "0px";
+}
 
+// Update checked item in list:
+function selectListItem(el) {
+
+    // el is an <a> within the <li>
+    var li = el.parentElement;
+    var ul = li.parentElement;
+
+    if (li.className === "checked")
+	return;
+
+    // Uncheck old selected element:
+    ul.getElementsByClassName("checked")[0].className = "";
+
+    // Check this element:
+    li.className = "checked";
+
+    // Update
+    update();
 }
 
 // Update form elements containing trait selectors
 function updateTraitSelectors(tree) {
     
-    var elementIDs = ["colourTrait", "tipTextTrait", "nodeTextTrait"];
+    var elementIDs = ["colourTraitSelector", "tipTextTraitSelector", "nodeTextTraitSelector"];
     for (var eidx=0; eidx<elementIDs.length; eidx++) {
         var el = document.getElementById(elementIDs[eidx]);
 	
-        // Save currently selected element index:
-        var idx = el.selectedIndex;
+        // Save currently selected trait:
+        var selectedTrait =  el.getElementsByClassName("checked")[0].children[0].text;
 	
         // Clear old traits:
         el.innerHTML = "";
@@ -139,34 +140,35 @@ function updateTraitSelectors(tree) {
 	// Colour selector only allows traits common to _all_ nodes on tree.
 	// All other selectors include the node label as an option.
 
-	var traitList;
-        if (elementIDs[eidx] === "colourTrait") {
-	    traitList = tree.getTraitList(true);
+	var traitList = ["None"];
+        if (elementIDs[eidx] === "colourTraitSelector") {
+	    traitList = traitList.concat(tree.getTraitList(true));
 
 	} else {
-	    traitList = tree.getTraitList(false);
-            var selector = document.createElement("option");
-            selector.setAttribute("value", "label");
-            selector.textContent = "label";
-            el.appendChild(selector);   
+	    traitList.push("Node label");
+	    traitList = traitList.concat(tree.getTraitList(false));
         }
 
 	// Construct selector trait lists:
         for (var i=0; i<traitList.length; i++) {
-            var selector = document.createElement("option");
-            selector.setAttribute("value", traitList[i]);
-            selector.textContent = traitList[i];
-            el.appendChild(selector);
+            var selector = document.createElement("li");
+	    var a = document.createElement("a");
+	    a.setAttribute("href","#");
+	    a.setAttribute("onclick", "selectListItem(this); return false;");
+	    a.textContent = traitList[i];
+	    selector.appendChild(a);
+	    if (traitList[i] === selectedTrait)
+		selector.className = "checked";
+	    el.appendChild(selector);
         }
 
-        // Restore selected index:
-        if (idx>=0)
-            el.selectedIndex = idx;
     }
 }
 
-// Ensure current tree index is within bounds and
-// keeps "spin control" up to date
+// Ensure current tree index is within bounds,
+// keeps "spin control" up to date and alters
+// visibility of control depending on number of
+// trees in current list.
 function updateCurrentTreeIdx() {
 
     if (currentTreeIdx>trees.length-1)
@@ -190,12 +192,16 @@ function updateCurrentTreeIdx() {
 	document.getElementById("lastTree").disabled = false;
     }
 
+    var selectEl = document.getElementById("treeSelect");
     var counterEl = document.getElementById("treeCounter");
-    if (trees.length>1)
+
+    if (trees.length>1) {
+	selectEl.style.display = "block";
 	counterEl.textContent = "Tree number: " +
 	(currentTreeIdx+1) + " of " + trees.length;
-    else
-	counterEl.textContent = "";
+    } else {
+	selectEl.style.display = "none";
+    }
 }
 
 // Update object representation of tree data from string
@@ -271,12 +277,15 @@ function update() {
     var tree = trees[currentTreeIdx].copy();
 
     // Sort tree nodes
-    if (document.getElementById("sort").checked) {
-        var sortOrderElement = document.getElementById("sortOrder");
-        if (sortOrderElement.options[sortOrderElement.selectedIndex].value === "ascending")
-            tree.sortNodes(false);
-        else
-            tree.sortNodes(true);
+    switch (document.getElementById("sortSelector").getElementsByClassName("checked")[0].children[0].text) {
+    case "Ascending":
+        tree.sortNodes(false);
+	break;
+    case "Descending":
+        tree.sortNodes(true);
+	break;
+    default:
+	break;
     }
 
     // Update trait selectors:
@@ -284,32 +293,32 @@ function update() {
     
     // Determine whether colouring is required:
     var colourTrait = undefined;
-    if (document.getElementById("colour").checked) {
-        var colourTraitElement = document.getElementById("colourTrait");
-	if (colourTraitElement.selectedIndex>=0) {
-	    colourTrait = colourTraitElement.options[colourTraitElement.selectedIndex].value;
-	}
+    var colourTraitEl = document.getElementById("colourTraitSelector").getElementsByClassName("checked")[0];
+    if (colourTraitEl.textContent !== "None") {
+	colourTrait = colourTraitEl.textContent;
     }
     
     // Determine whether tip labels are required:
     var tipTextTrait = undefined;
-    if (document.getElementById("tipText").checked) {
-        var tipTextTraitElement = document.getElementById("tipTextTrait");
-        if (tipTextTraitElement.selectedIndex>=0) {
-            tipTextTrait = tipTextTraitElement.options[tipTextTraitElement.selectedIndex].value;
-        }
+    var tipTextTraitEl = document.getElementById("tipTextTraitSelector").getElementsByClassName("checked")[0];
+    if (tipTextTraitEl.textContent !== "None") {
+	if (tipTextTraitEl.textContent === "Node label")
+	    tipTextTrait = "label";
+	else
+	    tipTextTrait = tipTextTraitEl.textContent;
     }
 
     // Determine whether internal node labels are required:
     var nodeTextTrait = undefined;
-    if (document.getElementById("nodeText").checked) {
-        var nodeTextTraitElement = document.getElementById("nodeTextTrait");
-        if (nodeTextTraitElement.selectedIndex>=0) {
-            nodeTextTrait = nodeTextTraitElement.options[nodeTextTraitElement.selectedIndex].value;
-        }
+    var nodeTextTraitEl = document.getElementById("nodeTextTraitSelector").getElementsByClassName("checked")[0];
+    if (nodeTextTraitEl.textContent !== "None") {
+	if (nodeTextTraitEl.textContent === "Node label")
+	    nodeTextTrait = "label";
+	else
+	    nodeTextTrait = nodeTextTraitEl.textContent;
     }
 
-    // Determine whether singleton nodes should be marked:
+    // Determine whether internal nodes should be marked:
     var markSingletonNodes = document.getElementById("markSingletonNodes").checked;
 
     // Determine whether axis should be displayed:
@@ -321,10 +330,7 @@ function update() {
     // Assign chosen layout properties:
 
     var controlsOffset;
-    if (!controlsHidden)
-	controlsOffset = 270;
-    else
-	controlsOffset = 0;
+    controlsOffset = 0;
 
     layout.width = Math.max(window.innerWidth-controlsOffset-5, 200);
     layout.height = Math.max(window.innerHeight-5, 200);

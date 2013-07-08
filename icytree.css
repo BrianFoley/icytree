@@ -1,0 +1,108 @@
+body {
+    margin: 0px;
+}
+
+#topmenu {
+    position: absolute;
+    color: white;
+
+    font: 16px "sans-serif";
+    z-index: 1;
+}
+
+#topmenu a {
+    text-decoration: none;
+    color: white;
+}
+
+div.menu {
+    position: absolute;
+}
+
+#filemenu {
+    top: 0px;
+    left: 5px;
+}
+
+#stylemenu {
+    top: 0px;
+    left: 50px;
+}
+
+
+#helpmenu {
+    display: none;
+    top: 0px;
+    left: 100px;
+}
+
+.header {
+    background-color: rgba(0,0,0,0.7);
+    font: 15px sans-serif;
+    padding: 2px;
+    margin: 0px;
+}
+
+div.sub {
+    position: relative;
+    margin-bottom: 0px;
+}
+div.subsub {
+    position: relative;
+}
+
+div.menu:hover > ul.sub { display: block; position: relative; top: 2px; left: 5px;}
+
+ul.sub li:hover > div ul.subsub { display: block; position: absolute; top: -19px; left: 200px; }
+
+ul.sub {
+    display: none;
+    background: red;
+    background-color: rgba(0,0,0,0.7);
+    width: 200px;
+    padding: 0px;
+    margin: 0px;
+}
+ul.sub li:hover {
+    background: gray;
+}
+
+ul.subsub {
+    display: none;
+    background-color: rgba(0,0,0,0.7);
+    width: 200px;
+    padding: 0px;
+    margin: 0px;
+}
+
+li {
+    padding: 0px;
+    margin: 0px;
+    list-style-type: none;
+}
+
+li.checked {
+    font-weight: bold;
+}
+
+#treeSelect {
+    display: none;
+    position: absolute;
+    color: white;
+    background-color: rgba(0,0,0,0.7);
+    opacity: 0.5;
+    left: 5px;
+    bottom: 5px;
+    margin: 0px;
+    padding: 5px;
+}
+
+#treeSelect:hover {
+    opacity: 1.0;
+}
+
+#output {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}

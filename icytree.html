@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>IcyTree</title>
+
+    <script src="phylo.parse.js"></script>
+    <script src="phylo.vis.js"></script>
+    <script src="icytree.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="icytree.css">
+
+  </head>
+
+  <body onload="initialise();">
+    
+    <!-- Control panel -->
+    <div id="topmenu">
+      <div id="filemenu" class="menu">
+	<a class="header">File</a>
+	<ul class="sub">
+	  <li>
+	    <textarea id="pasteInput" placeholder="newick string..."
+		      onchange="pasteInputHandler();"></textarea>
+	  </li>
+	  <li><input id="fileInput" type="file" size="10"
+		     onchange="fileInputHandler();"/>
+	  </li>
+	  <li><a href="#" id="fileReload" onclick="loadFile();">Reload File</a></li>
+	  <li><a href="#" id="exportSVG" onclick="exportSVG();">Export SVG</a></li>
+	</ul>
+      </div>
+      
+      <div id="stylemenu" class="menu">
+	<a class="header">Style</a>
+	<ul class="sub">
+	  <li>Sort nodes...
+	    <div class="subsub">
+	      <ul id="sortSelector" class="subsub">
+		<li class="checked"><a onclick="selectListItem(this); return false;" href="#">Descending</a></li>
+		<li><a href="#" onclick="selectListItem(this); return false;">Ascending</a></li>
+		<li><a href="#" onclick="selectListItem(this); return false;">Don't sort</a></li>
+	      </ul>
+	    </div>
+	  </li>
+	  <li>Colour edges by...
+	    <div class="subsub">
+	      <ul id="colourTraitSelector" class="subsub">
+		<li class="checked"><a href="#" onclick="return false;">None</a></li>
+	      </ul>
+	    </div>
+	  </li>
+	  <li>Tip text...
+	    <div class="subsub">
+	      <ul id="tipTextTraitSelector" class="subsub">
+		<li><a href="#" onclick="selectListItem(this); return false;">None</a></li>
+		<li class="checked"><a href="#" onclick="selectListItem(this); return false;">Node label</a></li>
+	      </ul>
+	    </div>
+	  </li>
+	  <li>Internal node text...
+	    <div class="subsub">
+	      <ul id="nodeTextTraitSelector" class="subsub">
+		<li class="checked"><a href="#" onclick="selectListItem(this); return false;">None</a></li>
+		<li><a href="#" onclick="selectListItem(this);">Node label</a></li>
+	      </ul>
+	    </div>
+	  </li>
+	  <li><input type="checkbox" id="markSingletonNodes" onchange="update();"/>mark singleton nodes</li>
+	  <li><input type="checkbox" id="axis" onchange="update();"/>time axis</li>
+	</ul>
+      </div>
+
+      <div id="helpmenu" class="menu">
+	<a class="header">Help</a>
+	<ul class="sub">
+	  <li><a href="#">Keyboard shortcuts</a></li>
+	  <li><a href="#">About</a></li>
+	</ul>
+      </div>
+
+    </div>
+</div>
+
+<!-- Main output element -->
+<div id="output"></div>
+
+<!-- Tree selector -->
+<div id="treeSelect">
+  <div id="treeCounter"></div>
+  <button id="firstTree" type="button" disabled="disabled"
+	  onclick="currentTreeIdx-=Math.round(trees.length/10); update();">&lt;&lt;</button>
+  <button id="prevTree" type="button" disabled="disabled"
+	  onclick="currentTreeIdx-=1; update();">&lt;</button>
+  <button id="nextTree" type="button" disabled="disabled"
+	  onclick="currentTreeIdx+=1; update();">&gt;</button>
+  <button id="lastTree" type="button" disabled="disabled"
+	  onclick="currentTreeIdx+=Math.round(trees.length/10); update();">&gt;&gt;</button>
+</div>
+
+</body>
+</html>
