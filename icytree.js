@@ -1,37 +1,110 @@
-window.onresize = update;
-
 // Global variables
 var treeFile = undefined;
 var treeData = "";
 var trees = [];
 var currentTreeIdx = 0;
 var controlsHidden = false;
-var outputEl = undefined;
 var zoomControl = undefined;
 var lineWidth = 2;
 
-function fileInputHandler() {
-    treeFile = document.getElementById("fileInput").files[0];
+// Page initialisation code:
+$(document).ready(function() {
 
+    $(window).on("resize", update);
+
+    // Set up drag and drop event listeners:
+    $("#output").on("dragover", function(event) {
+	event.preventDefault();
+	return false;
+    });
+    $("#output").on("dragend", function(event) {
+	event.preventDefault();
+	return false;
+    });
+    $("#output").on("drop", dropInputHandler);
+
+    // Set up keyboard handler:
+    $(document).on("keypress", keyPressHandler);
+
+    // Create new zoomControl object (don't initialise):
+    zoomControl = Object.create(ZoomControl, {});
+
+
+    // Set up menus:
+    $("#menu > li > button").button();
+
+    $("#fileMenu").menu().hide();
+    $("#styleMenu").menu().hide();
+    $("#helpMenu").menu().hide();
+
+    $("#menu > li").mouseover(function() {
+	$(this).find(".menuDiv > ul").show();
+    });
+
+    $("#menu > li").mouseout(function() {
+	$(this).find(".menuDiv > ul").hide();
+    });
+
+    // Menu item events:
+    $("#fileEnter").click(directEntryDisplay);
+    $("#fileLoad").change(fileInputHandler);
+    $("#fileReload").click(reloadTreeData);
+    $("#fileExport").click(exportSVG);
+
+    $("#styleSort").on("click", "a", function() {
+	selectListItem($(this));
+    });
+    $("#styleColourTrait").on("click", "a", function() {
+	selectListItem($(this));
+    });
+    $("#styleTipTextTrait").on("click", "a", function() {
+	selectListItem($(this));
+    });
+    $("#styleNodeTextTrait").on("click", "a", function() {
+	selectListItem($(this));
+    });
+    $("#styleEdgeThickness").on("click", "a", function() {
+	if ($(this).text() === "Increase")
+	    edgeThicknessChange(1);
+	else
+	    edgeThicknessChange(-1);
+    });
+
+    $("#styleMarkSingletons").click(function() {
+	toggleItem($(this));
+    });
+    $("#styleDisplayAxis").click(function() {
+	toggleItem($(this));
+    });
+    $("#styleAntiAlias").click(function() {
+	toggleItem($(this));
+    });
+
+    $("#helpShortcuts").click(keyboardShortcutHelpDisplay);
+    $("#helpAbout").click(aboutBoxDisplay);
+
+    update();
+});
+
+function fileInputHandler() {
+    treeFile = $("#fileLoad").prop("files")[0];
     loadFile();
 }
 
 function directEntryDisplay(flag) {
 
-    var el = document.getElementById("directEntry");
-
     if (flag) {
 	// Disable keypress event handler
-	document.removeEventListener("keypress", keyPressHandler, true);
+	$(document).off("keypress", keyPressHandler);
 
 	// Display input elements
-	el.style.display = "block";
+	$("#directEntry").show(400);
     } else {
 	// Hide input elements
-	el.style.display = "none";
+	$("#directEntry").hide(400);
 
 	// Enable keypress event handler
-	document.addEventListener("keypress", keyPressHandler, true);
+	$(document).on("keypress", keyPressHandler);
     }
 }
 
@@ -44,7 +117,7 @@ function directEntryHandler() {
 function dropInputHandler(event) {
     event.preventDefault();
 
-    treeFile = event.dataTransfer.files[0];
+    treeFile = event.originalEvent.dataTransfer.files[0];
 
     loadFile();
 }
@@ -65,41 +138,51 @@ function loadFile() {
 // Display space-filling frame with big text
 function displayStartOutput() {
 
-    var output = document.getElementById("output");
+    var output = $("#output");
 
-    output.className = "empty";
-    output.innerHTML = "";
+    output.removeClass();
+    output.addClass("empty");
+    output.html("");
 
-    startEl = document.createElement("img");
-    startEl.setAttribute("src","icytree_start.svg");
-    startEl.setAttribute("height", "150");
-    output.appendChild(startEl);
+    output.append(
+	$("<img/>")
+	    .attr("src", "icytree_start.svg")
+	    .attr("height", "150")
+    );
 
     // Pad to centre of page. (Wish I could do this with CSS!)
     var pad = Math.max(Math.floor((window.innerHeight-60-150)/2), 0) + "px";
-    output.style.paddingTop = pad;
-    output.style.paddingBottom = pad;
+    output.css("paddingTop", pad);
+    output.css("paddingBottom", pad);
 
 }
 
 function displayLoading() {
-    output.className = "text";
-    output.innerHTML = "Loading...";
+
+    var output = $("#output");
+
+    output.removeClass();
+    output.addClass("text");
+    output.text("Loading...");
 
     // Pad to centre of page. (Wish I could do this with CSS!)
     var pad = Math.max(Math.floor((window.innerHeight-60-100)/2), 0) + "px";
-    output.style.paddingTop = pad;
-    output.style.paddingBottom = pad;
+    output.css("paddingTop", pad);
+    output.css("paddingBottom", pad);
 }
 
 function displayError(string) {
-    output.className = "error";
-    output.innerHTML = string;
+
+    var output = $("#output");
+
+    output.removeClass();
+    output.addClass("error");
+    output.text(string);
 
     // Pad to centre of page. (Wish I could do this with CSS!)
     var pad = Math.max(Math.floor((window.innerHeight-60-100)/2), 0) + "px";
-    output.style.paddingTop = pad;
-    output.style.paddingBottom = pad;
+    output.css("paddingTop", pad);
+    output.css("paddingBottom", pad);
 
     setTimeout(function() {
 	displayStartOutput();
@@ -108,48 +191,44 @@ function displayError(string) {
 
 // Clear all output element styles.
 function prepareOutputForTree() {
-    var output = document.getElementById("output");
-    output.className = "";
-    output.style.padding = "0px";
+    var output = $("#output");
+    output.removeClass();
+    output.css("padding", "0px");
 }
 
 // Display keyboard shortcut help
 function keyboardShortcutHelpDisplay(flag) {
 
-    var el = document.getElementById("shortcutHelp");
-
     if (flag) {
 	// Disable keypress event handler
-	document.removeEventListener("keypress", keyPressHandler, true);
+	$(document).off("keypress", keyPressHandler);
 
 	// Display input elements
-	el.style.display = "block";
+	$("#shortcutHelp").show(400);
     } else {
 	// Hide input elements
-	el.style.display = "none";
+	$("#shortcutHelp").hide(400);
 
 	// Enable keypress event handler
-	document.addEventListener("keypress", keyPressHandler, true);
+	$(document).on("keypress", keyPressHandler);
     }
 }
 
 // Display about box
 function aboutBoxDisplay(flag) {
 
-    var el = document.getElementById("about");
-
     if (flag) {
 	// Disable keypress event handler
-	document.removeEventListener("keypress", keyPressHandler, true);
+	$(document).off("keypress");
 
 	// Display input elements
-	el.style.display = "block";
+	$("#about").show(400);
     } else {
 	// Hide input elements
-	el.style.display = "none";
+	$("#about").hide(400);
 
 	// Enable keypress event handler
-	document.addEventListener("keypress", keyPressHandler, true);
+	$(document).on("keypress", keyPressHandler);
     }
 }
 
@@ -157,53 +236,64 @@ function aboutBoxDisplay(flag) {
 function selectListItem(el) {
 
     // el is an <a> within the <li>
-    var li = el.parentElement;
-    var ul = li.parentElement;
+    var li = el.parent();
+    var ul = li.parent();
 
-    if (li.className === "checked")
+    if (el.find("span").length>0)
 	return;
 
     // Uncheck old selected element:
-    ul.getElementsByClassName("checked")[0].className = "";
+    ul.find("span").remove();
 
     // Check this element:
-    li.className = "checked";
+    $("<span/>").addClass("ui-icon ui-icon-check").prependTo(el);
 
     // Update
     update();
 }
 
 // Cycle checked item in list:
-function cycleListItem(selectorEl) {
-    var checkedItemEl = selectorEl.getElementsByClassName("checked")[0];
-    var nextItemEl = checkedItemEl.nextElementSibling;
-    
-    if (nextItemEl === null)
-	nextItemEl = selectorEl.children[0];
+function cycleListItem(el) {
 
-    // selectListItem() expects <a> within the <li>
-    selectListItem(nextItemEl.children[0]);
+    // el is <ul>
+    var currentItem = el.find("span").closest("li");
+    if (currentItem.is(el.find("li").last()))
+	selectListItem(el.find("li").first().children());
+    else
+	selectListItem(currentItem.next().children());
+}
+
+function toggleItem (el) {
+    if (el.find("span").length===0) {
+	el.prepend($("<span/>").addClass("ui-icon ui-icon-check"));
+    } else {
+	el.find("span").remove();
+    }
+    
+    update();
 }
 
 // Update form elements containing trait selectors
 function updateTraitSelectors(tree) {
     
-    var elementIDs = ["colourTraitSelector", "tipTextTraitSelector", "nodeTextTraitSelector"];
-    for (var eidx=0; eidx<elementIDs.length; eidx++) {
-        var el = document.getElementById(elementIDs[eidx]);
+    var elements = [$("#styleColourTrait"),
+		    $("#styleTipTextTrait"),
+		    $("#styleNodeTextTrait")];
+
+    $.each(elements, function (eidx, el) {
 	
         // Save currently selected trait:
-        var selectedTrait =  el.getElementsByClassName("checked")[0].children[0].text;
+        var selectedTrait =  el.find("span").parent().text();
 	
         // Clear old traits:
-        el.innerHTML = "";
+        el.html("");
 	
         // Selector-dependent stuff:
 	// Colour selector only allows traits common to _all_ nodes on tree.
 	// All other selectors include the node label as an option.
 
 	var traitList = ["None"];
-        if (elementIDs[eidx] === "colourTraitSelector") {
+        if (el.is("#styleColourTrait")){
 	    traitList = traitList.concat(tree.getTraitList(true));
 
 	} else {
@@ -213,18 +303,17 @@ function updateTraitSelectors(tree) {
 
 	// Construct selector trait lists:
         for (var i=0; i<traitList.length; i++) {
-            var selector = document.createElement("li");
-	    var a = document.createElement("a");
-	    a.setAttribute("href","#");
-	    a.setAttribute("onclick", "selectListItem(this); return false;");
-	    a.textContent = traitList[i];
-	    selector.appendChild(a);
+            var selector = $("<li />");
+	    var a = $("<a/>").attr("href","#").text(traitList[i]);
+	    selector.append(a);
 	    if (traitList[i] === selectedTrait)
-		selector.className = "checked";
-	    el.appendChild(selector);
+		$("<span/>").addClass("ui-icon ui-icon-check").prependTo(a);
+	    el.append(selector);
         }
+	
+    });
 
-    }
+    $("#styleMenu").menu("refresh");
 }
 
 // Alter line width used in visualisation.
@@ -352,11 +441,10 @@ function reloadTreeData() {
 
 // Converts SVG in output element to data URI for saving
 function exportSVG() {
-    if (currentTreeIdx>=trees.length)
+    if (currentTreeIdx>=trees.length || currentTreeIdx<0)
 	return false;
 
-    var outputEl = document.getElementById("output");
-    var dataURI = "data:image/svg+xml;base64," + window.btoa(outputEl.innerHTML);
+    var dataURI = "data:image/svg+xml;base64," + window.btoa($("#output").html());
     window.open(dataURI);
 }
 
@@ -378,7 +466,7 @@ function update() {
     var tree = trees[currentTreeIdx].copy();
 
     // Sort tree nodes
-    switch (document.getElementById("sortSelector").getElementsByClassName("checked")[0].children[0].text) {
+    switch ($("#styleSort span").parent().text()) {
     case "Ascending":
         tree.sortNodes(false);
 	break;
@@ -393,68 +481,59 @@ function update() {
     updateTraitSelectors(tree);
     
     // Determine whether colouring is required:
-    var colourTrait = undefined;
-    var colourTraitEl = document.getElementById("colourTraitSelector").getElementsByClassName("checked")[0];
-    if (colourTraitEl.textContent !== "None") {
-	colourTrait = colourTraitEl.textContent;
-    }
+    var colourTrait = $("#styleColourTrait span").parent().text();
+    if (colourTrait === "None")
+	colourTrait = undefined;
     
     // Determine whether tip labels are required:
-    var tipTextTrait = undefined;
-    var tipTextTraitEl = document.getElementById("tipTextTraitSelector").getElementsByClassName("checked")[0];
-    if (tipTextTraitEl.textContent !== "None") {
-	if (tipTextTraitEl.textContent === "Node label")
-	    tipTextTrait = "label";
-	else
-	    tipTextTrait = tipTextTraitEl.textContent;
+    var tipTextTrait = $("#styleTipTextTrait span").parent().text();
+    switch (tipTextTrait) {
+    case "None":
+	tipTextTrait = undefined;
+	break;
+    case "Node label":
+	tipTextTrait = "label";
+	break;
+    default:
+	break;
     }
 
     // Determine whether internal node labels are required:
-    var nodeTextTrait = undefined;
-    var nodeTextTraitEl = document.getElementById("nodeTextTraitSelector").getElementsByClassName("checked")[0];
-    if (nodeTextTraitEl.textContent !== "None") {
-	if (nodeTextTraitEl.textContent === "Node label")
-	    nodeTextTrait = "label";
-	else
-	    nodeTextTrait = nodeTextTraitEl.textContent;
+    var nodeTextTrait = $("#styleNodeTextTrait span").parent().text();
+    switch (nodeTextTrait) {
+    case "None":
+	nodeTextTrait = undefined;
+	break;
+    case "Node label":
+	nodeTextTrait = "label";
+	break;
+    default:
+	break;
     }
-
-    // Determine whether internal nodes should be marked:
-    var markSingletonNodes = document.getElementById("markSingletonNodes").checked;
-
-    // Determine whether axis should be displayed:
-    var showAxis = document.getElementById("axis").checked;
-
-    // Determine whether anti-aliasing should be used:
-    var antialias = document.getElementById("antialias").checked;
 
     // Create layout object:
     var layout = Object.create(Layout).init(tree).standard();
     
     // Assign chosen layout properties:
-
-    var controlsOffset;
-    controlsOffset = 0;
-
-    layout.width = Math.max(window.innerWidth-controlsOffset-5, 200);
+    layout.width = Math.max(window.innerWidth-5, 200);
     layout.height = Math.max(window.innerHeight-5, 200);
     layout.colourTrait = colourTrait;
     layout.tipTextTrait = tipTextTrait;
     layout.nodeTextTrait = nodeTextTrait;
-    layout.markSingletonNodes = markSingletonNodes;
-    layout.axis = showAxis;
+    layout.markSingletonNodes = ($("#styleMarkSingletons > span").length>0);
+    layout.axis = ($("#styleDisplayAxis > span").length>0);
     layout.lineWidth = lineWidth;
 
     // Use existing zoom control instance:
     layout.zoomControl = zoomControl;
 
     // Display!
-    outputEl.innerHTML = "";
+    $("#output").html("");
     var svg = layout.display();
     svg.setAttribute("id", "SVG");
-    if (!antialias)
+    if ($("#styleAntiAlias > span").length==0)
 	svg.style.shapeRendering = "crispEdges";
-    outputEl.appendChild(svg);
+    $("#output").append(svg);
 }
 
 // Keyboard event handler:
@@ -481,31 +560,27 @@ function keyPressHandler(event) {
 
     case "t":
 	// Cycle tip text:
-	cycleListItem(document.getElementById("tipTextTraitSelector"));
+	cycleListItem($("#styleTipTextTrait"));
 	break;
 
     case "i":
 	// Cycle internal node text:
-	cycleListItem(document.getElementById("nodeTextTraitSelector"));
+	cycleListItem($("#styleNodeTextTrait"));
 	break;
 
     case "c":
 	// Cycle branch colour:
-	cycleListItem(document.getElementById("colourTraitSelector"));
+	cycleListItem($("#styleColourTrait"));
 	break;
 
     case "m":
 	// Toggle marking of internal nodes:
-	var checkbox = document.getElementById("markSingletonNodes")
-	checkbox.checked = !checkbox.checked;
-	update();
+	toggleItem($("#styleMarkSingletons"));
 	break;
 
     case "a":
 	// Toggle axis display
-	var checkbox = document.getElementById("axis")
-	checkbox.checked = !checkbox.checked;
-	update();
+	toggleItem($("#styleDisplayAxis"));
 	break;
 
     case "z":
@@ -549,35 +624,4 @@ function keyPressHandler(event) {
     }
 }
 
-// Page initialisation code:
-function initialise() {
 
-    // Record output element
-    outputEl = document.getElementById("output");
-    
-    // Set up drag and drop event listeners:
-    outputEl.addEventListener("dragover", function(event) {
-	event.preventDefault();
-	return false;
-    });
-    outputEl.addEventListener("dragend", function(event) {
-	event.preventDefault();
-	return false;
-    });
-    outputEl.addEventListener("drop", dropInputHandler);
-
-    // Set up keyboard handler:
-    document.addEventListener("keypress", keyPressHandler, true);
-
-    // Create new zoomControl object (don't initialise):
-    zoomControl = Object.create(ZoomControl, {});
-
-    // Read tree from HTTP GET parameter if available:
-    if (window.location.search.length>0 && window.location.search[0]==="?") {
-	treeData = atob(window.location.search.slice(1));
-	reloadTreeData();
-	return;
-    }
-
-    update();
-}
