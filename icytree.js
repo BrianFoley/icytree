@@ -141,8 +141,31 @@ $(document).ready(function() {
 	$("#about").dialog("open");
     });
 
+    $("#warning").dialog({
+	autoOpen: false,
+	modal: true,
+	width: 450,
+	buttons: {
+	    "I understand": function() {
+		$(this).dialog("close");
+	    }}
+    });
+
     update();
+
+    // Display warning if required functions unavailable.
+    if (!browserValid()) {
+	$("#warning").dialog("open");
+    }
 });
+
+// Tests for the presence of requried browser functionaility
+function browserValid() {
+    if (!FileReader)
+	return false; // Can't load files.
+
+    return true;
+}
 
 // Load tree data from file object treeFile
 function loadFile() {
@@ -163,19 +186,28 @@ function displayStartOutput() {
     var output = $("#output");
 
     output.removeClass();
-    output.addClass("empty");
+    output.addClass("start");
     output.html("");
 
+    var imgHeight = 150;
+    var imgWidth = 368;
     output.append(
 	$("<img/>")
 	    .attr("src", "icytree_start.svg")
-	    .attr("height", "150")
+	    .attr("height", imgHeight)
     );
 
-    // Pad to centre of page. (Wish I could do this with CSS!)
-    var pad = Math.max(Math.floor((window.innerHeight-60-150)/2), 0) + "px";
+    // Pad to centre of page.
+    var pad = Math.max(Math.floor((window.innerHeight-60-imgHeight)/2), 0) + "px";
     output.css("paddingTop", pad);
     output.css("paddingBottom", pad);
+
+    pad = Math.max(Math.floor((window.innerWidth-50-imgWidth)/2), 0) + "px";
+    output.css("paddingLeft", pad);
+    output.css("paddingRight", pad);
+
+    output.css("width", imgWidth+"px");
+    output.css("height", imgHeight+"px");
 
 }
 
@@ -184,13 +216,17 @@ function displayLoading() {
     var output = $("#output");
 
     output.removeClass();
-    output.addClass("text");
+    output.addClass("loading");
     output.text("Loading...");
 
     // Pad to centre of page. (Wish I could do this with CSS!)
+    output.css("width", Math.max(Math.floor(window.innerWidth-50), 0) + "px");
+    output.css("height", "100px");
     var pad = Math.max(Math.floor((window.innerHeight-60-100)/2), 0) + "px";
     output.css("paddingTop", pad);
     output.css("paddingBottom", pad);
+    output.css("paddingLeft", "0px");
+    output.css("paddingRight", "0px");
 }
 
 function displayError(string) {
@@ -202,9 +238,13 @@ function displayError(string) {
     output.text(string);
 
     // Pad to centre of page. (Wish I could do this with CSS!)
+    output.css("width", Math.max(Math.floor(window.innerWidth-50), 0) + "px");
+    output.css("height", "100px");
     var pad = Math.max(Math.floor((window.innerHeight-60-100)/2), 0) + "px";
     output.css("paddingTop", pad);
     output.css("paddingBottom", pad);
+    output.css("paddingLeft", "0px");
+    output.css("paddingRight", "0px");
 
     setTimeout(function() {
 	displayStartOutput();
@@ -381,8 +421,11 @@ function updateCurrentTreeControl() {
 // Update object representation of tree data from string
 function reloadTreeData() {
 
+    // Clear existing trees
+    trees = [];
+
+    // Early check for empty tree data
     if (treeData.replace(/\s+/g,"").length === 0) {
-        trees = [];
 	update();
 	return;
     }
