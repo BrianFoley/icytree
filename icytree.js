@@ -602,7 +602,7 @@ function exportSVGMulti(pages) {
 
     var svgEl = $("#output > svg")[0];
 
-    // Get full width and height
+    // Record old width and height
     var width = svgEl.getAttribute("width");
     var height = svgEl.getAttribute("height");
 
@@ -760,6 +760,9 @@ function update() {
     if ($("#styleAntiAlias > span").length==0)
 	svg.style.shapeRendering = "crispEdges";
     $("#output").append(svg);
+
+    // Rescale to match bounding box now that tree is rendered
+    zoomControl.updateToBBox();
 }
 
 // Keyboard event handler:

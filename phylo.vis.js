@@ -108,8 +108,8 @@ var Layout = Object.create({}, {
 	var savedThis = this;
 
 	// Margins are 5% of total dimension.
-	var xmargin = 0.05*this.width;
-	var ymargin = 0.05*this.height;
+	var xmargin = 0.0; //0.05*this.width;
+	var ymargin = 0.0; //0.05*this.height;
 
 	function posXform(treePos) {
 	    var xpos = (1-treePos[1])*(savedThis.width - 2*xmargin) + xmargin;
@@ -513,7 +513,8 @@ var ZoomControl = Object.create({}, {
 
     width: {value: undefined, writable: true, configurable: true, enumerable: false},
     height: {value: undefined, writable: true, configurable: true, enumerable: false},
-
+    x: {value: undefined, writable: true, configurable: true, enumerable: false},
+    y: {value: undefined, writable: true, configurable: true, enumerable: false},
 
     init: {value: function(svg, lineWidth) {
         this.svg = svg;
@@ -523,6 +524,8 @@ var ZoomControl = Object.create({}, {
 	if (!this.initialised) {
 	    this.width = svg.getAttribute("width");
 	    this.height = svg.getAttribute("height");
+	    this.x = 0;
+	    this.y = 0;
 	    this.centre = [Math.round(this.width/2),
 			   Math.round(this.height/2)];
 	    this.zoomFactorX = 1.0;
@@ -534,12 +537,14 @@ var ZoomControl = Object.create({}, {
 	    if (this.width != newWidth) {
 		this.centre[0] = this.centre[0]*newWidth/this.width;
 		this.width = newWidth;
+		this.x = 0;
 	    }
 
 	    var newHeight = svg.getAttribute("height");
 	    if (this.height != newHeight) {
 		this.centre[1] = this.centre[1]*newHeight/this.height;
 		this.height = newHeight;
+		this.y = 0;
 	    }
 	}
 
@@ -570,14 +575,14 @@ var ZoomControl = Object.create({}, {
 	var heightZoomed = this.height/this.zoomFactorY;
 
 	// Sanitize centre point
-	this.centre[0] = Math.max(0.5*widthZoomed, this.centre[0]);
-	this.centre[0] = Math.min(this.width-0.5*widthZoomed, this.centre[0]);
+	this.centre[0] = Math.max(this.x + 0.5*widthZoomed, this.centre[0]);
+	this.centre[0] = Math.min(this.x + this.width-0.5*widthZoomed, this.centre[0]);
 
-	this.centre[1] = Math.max(0.5*heightZoomed, this.centre[1]);
-	this.centre[1] = Math.min(this.height-0.5*heightZoomed, this.centre[1]);
+	this.centre[1] = Math.max(this.y + 0.5*heightZoomed, this.centre[1]);
+	this.centre[1] = Math.min(this.y +this.height-0.5*heightZoomed, this.centre[1]);
 	
-	var x = Math.max(0, this.centre[0] - 0.5*widthZoomed);
-	var y = Math.max(0, this.centre[1] - 0.5*heightZoomed);
+	var x = Math.max(this.x, this.centre[0] - 0.5*widthZoomed);
+	var y = Math.max(this.y, this.centre[1] - 0.5*heightZoomed);
 
 	this.svg.setAttribute("viewBox", x + " " + y + " "
 			      + widthZoomed + " " + heightZoomed);
@@ -682,6 +687,16 @@ var ZoomControl = Object.create({}, {
     reset: {value: function() {
 	this.zoomFactorX = 1.0;
 	this.zoomFactorY = 1.0;
+	this.updateView();
+    }},
+
+    // Method to update scaling to match bounding box.
+    // Can be called only after SVG is actually drawn.
+    updateToBBox: {value: function() {
+	this.width = this.svg.getBBox().width;
+	this.height = this.svg.getBBox().height;
+	this.x = this.svg.getBBox().x;
+	this.y = this.svg.getBBox().y;
 	this.updateView();
     }}
 });
